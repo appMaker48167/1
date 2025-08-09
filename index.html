@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Strength Tracker</title>
+  <meta name="theme-color" content="#111827">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header>
+    <h1>🏋️‍♂️ Strength Tracker</h1>
+    <nav>
+      <button class="tab-btn active" data-tab="log">Log</button>
+      <button class="tab-btn" data-tab="history">History</button>
+      <button class="tab-btn" data-tab="progress">Progress</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Log Tab -->
+    <section id="tab-log" class="tab active">
+      <form id="log-form" autocomplete="off">
+        <div class="row">
+          <label>Date
+            <input type="date" id="log-date" required>
+          </label>
+          <label>Exercise
+            <div class="exercise-row">
+              <select id="log-exercise"></select>
+              <button type="button" id="add-exercise-btn" title="Add a new exercise">＋</button>
+            </div>
+          </label>
+        </div>
+        <div class="row">
+          <label>Weight (lb)
+            <input type="number" id="log-weight" step="0.5" min="0" required>
+          </label>
+          <label>Reps
+            <input type="number" id="log-reps" step="1" min="1" required>
+          </label>
+          <label>RPE
+            <input type="number" id="log-rpe" step="0.5" min="1" max="10" placeholder="optional">
+          </label>
+        </div>
+        <label>Notes
+          <input type="text" id="log-notes" placeholder="e.g., felt strong, tempo 3-1-1">
+        </label>
+        <div class="actions">
+          <button type="submit" class="primary">Save Set</button>
+          <button type="button" id="quick-duplicate">Duplicate Last</button>
+          <button type="reset">Reset</button>
+        </div>
+      </form>
+
+      <div class="summary-banner" id="today-summary">
+        <div class="summary-main">
+          <div class="summary-number" id="summary-volume">0</div>
+          <div class="summary-label">Total Weight Moved (lb)</div>
+        </div>
+        <div class="summary-stats">
+          <div><strong id="summary-sets">0</strong><br><span class="dim">Sets</span></div>
+          <div><strong id="summary-exercises">0</strong><br><span class="dim">Exercises</span></div>
+          <div><strong id="summary-e1rm">0</strong><br><span class="dim">Best e1RM</span></div>
+        </div>
+      </div>
+
+      <div class="hint">Tip: e1RM uses Epley: weight × (1 + reps/30). Volume = Σ(weight × reps).</div>
+
+      <h2>Today’s Sets</h2>
+      <table id="today-table">
+        <thead>
+          <tr>
+            <th>Exercise</th><th>Weight</th><th>Reps</th><th>RPE</th><th>e1RM</th><th>Notes</th><th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- History Tab -->
+    <section id="tab-history" class="tab">
+      <div class="toolbar">
+        <input type="search" id="history-search" placeholder="Filter by exercise or note…">
+        <button id="export-json">Export JSON</button>
+        <button id="import-json">Import JSON</button>
+        <input type="file" id="import-file" accept="application/json" style="display:none">
+        <button id="export-csv">Export CSV</button>
+      </div>
+      <table id="history-table">
+        <thead>
+          <tr>
+            <th>Date</th><th>Exercise</th><th>Weight</th><th>Reps</th><th>RPE</th><th>e1RM</th><th>Notes</th><th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Progress Tab -->
+    <section id="tab-progress" class="tab">
+      <div class="row">
+        <label>Exercise
+          <select id="progress-exercise"></select>
+        </label>
+        <label>Metric
+          <select id="progress-metric">
+            <option value="e1rm">e1RM (lb)</option>
+            <option value="max_weight">Max weight (lb)</option>
+            <option value="volume">Total volume (lb)</option>
+          </select>
+        </label>
+        <label>Window
+          <select id="progress-window">
+            <option value="all">All time</option>
+            <option value="90">Last 90 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
+        </label>
+      </div>
+      <canvas id="progress-chart" height="260"></canvas>
+      <div class="cards" id="pr-cards"></div>
+    </section>
+
+    <!-- Settings Tab -->
+    <section id="tab-settings" class="tab">
+      <h2>Exercises</h2>
+      <div id="exercise-list"></div>
+      <div class="row">
+        <input type="text" id="new-exercise-name" placeholder="Add exercise name (e.g., Back Squat)">
+        <button id="add-exercise-settings">Add</button>
+      </div>
+      <hr>
+      <button id="clear-data" class="danger">⚠️ Clear All Data</button>
+      <p class="dim">Data is saved locally on your device. Add to Home Screen to use offline.</p>
+    </section>
+  </main>
+
+  <footer>
+    <small>v1.1 • PWA • Made for iPhone (also works anywhere)</small>
+  </footer>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
+</body>
+</html>
