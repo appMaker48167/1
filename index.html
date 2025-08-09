@@ -112,7 +112,7 @@
           <select id="progress-metric">
             <option value="e1rm">e1RM (lb)</option>
             <option value="max_weight">Max weight (lb)</option>
-            <option value="volume">Total volume (lb)</option>
+            <option value="volume">Total volume (lb) for selected exercise</option>
           </select>
         </label>
         <label>Window
@@ -125,6 +125,20 @@
       </div>
       <canvas id="progress-chart" height="260"></canvas>
       <div class="cards" id="pr-cards"></div>
+
+      <hr>
+      <div class="row">
+        <label>Daily Total Window
+          <select id="daily-window">
+            <option value="all">All time</option>
+            <option value="180">Last 180 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
+        </label>
+      </div>
+      <h3>Daily Total Weight Moved</h3>
+      <canvas id="daily-volume-chart" height="260"></canvas>
     </section>
 
     <!-- Settings Tab -->
@@ -142,7 +156,7 @@
   </main>
 
   <footer>
-    <small>v1.1 • PWA • Made for iPhone (also works anywhere)</small>
+    <small>v1.2 • PWA • Made for iPhone (also works anywhere)</small>
   </footer>
 
   <script>

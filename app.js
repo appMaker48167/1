@@ -6,13 +6,13 @@ const todayISO = () => new Date().toISOString().slice(0,10);
 const toNumber = (v) => v === '' || v === null || isNaN(Number(v)) ? null : Number(v);
 const e1rm = (w, r) => (w ?? 0) * (1 + (r ?? 0)/30);
 const fmtNum = (n, dec=1) => (n === null || n === undefined || isNaN(n)) ? '' : (dec===0 ? Math.round(n).toString() : (Math.round(n*10**dec)/10**dec).toFixed(dec));
-const escapeHtml = (s) => s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const escapeHtml = (s) => (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
 // ===== Storage =====
 const STORAGE_KEY = 'stDataV1';
 const DEFAULT_EXERCISES = ['Back Squat','Bench Press','Deadlift','Overhead Press','Barbell Row','Pull-up','Dumbbell Bench','RDL'];
 
-let state = { exercises: DEFAULT_EXERCISES, logs: [] };
+let state = { exercises: DEFAULT_EXERCISES.slice(), logs: [] };
 
 function load() {
   const saved = localStorage.getItem(STORAGE_KEY);
@@ -37,7 +37,7 @@ function init() {
     $$('.tab').forEach(sec => sec.classList.remove('active'));
     $('#tab-' + tab).classList.add('active');
     if (tab === 'history') renderHistory();
-    if (tab === 'progress') renderProgressSelectors();
+    if (tab === 'progress') { renderProgressSelectors(); renderDailyVolume(); }
   }));
 
   // Date default
@@ -90,6 +90,8 @@ function init() {
     save();
     renderToday();
     renderHistory();
+    renderChart();
+    renderDailyVolume();
     $('#log-notes').value = '';
     $('#log-weight').focus();
   });
@@ -122,6 +124,8 @@ function init() {
       renderExerciseList();
       renderToday();
       renderHistory();
+      renderChart();
+      renderDailyVolume();
       alert('Cleared.');
     }
   });
@@ -130,6 +134,7 @@ function init() {
   renderToday();
   renderHistory();
   renderProgressSelectors();
+  renderDailyVolume();
 
   // iOS PWA hint (optional)
   if (!localStorage.getItem('pwaHintShown')) {
@@ -171,6 +176,8 @@ function renderExerciseList() {
       renderExerciseSelects();
       renderHistory();
       renderToday();
+      renderChart();
+      renderDailyVolume();
     };
     div.querySelector('[data-action="delete"]').onclick = () => {
       if (!confirm(`Delete exercise "${name}"? Existing logs keep their old name.`)) return;
@@ -218,6 +225,8 @@ function delLog(id) {
   save();
   renderToday();
   renderHistory();
+  renderChart();
+  renderDailyVolume();
 }
 
 // History table
@@ -242,14 +251,16 @@ function renderHistory() {
   tbody.querySelectorAll('button.del').forEach(btn => btn.onclick = () => delLog(btn.dataset.id));
 }
 
-// Progress
-let chart;
+// Progress (per-exercise)
+let chart; let dailyChart;
 function renderProgressSelectors() {
   const exSel = $('#progress-exercise');
   if (!exSel.value && exSel.options.length > 1) exSel.value = exSel.options[1].value;
   $('#progress-exercise').onchange = renderChart;
   $('#progress-metric').onchange = renderChart;
   $('#progress-window').onchange = renderChart;
+  const dailySel = document.getElementById('daily-window');
+  if (dailySel) dailySel.onchange = renderDailyVolume;
   renderChart();
 }
 
@@ -282,7 +293,7 @@ function renderChart() {
       return Math.max(...sets.map(s => e1rm(s.weight, s.reps)));
     } else if (metric === 'max_weight') {
       return Math.max(...sets.map(s => s.weight || 0));
-    } else { // volume
+    } else { // volume for selected exercise
       return sets.reduce((t,s)=> t + (s.weight||0) * (s.reps||0), 0);
     }
   });
@@ -326,7 +337,47 @@ function renderChart() {
 function metricLabel(m) {
   if (m === 'e1rm') return 'Estimated 1RM (lb)';
   if (m === 'max_weight') return 'Max Weight (lb)';
-  return 'Total Volume (lb)';
+  return 'Volume (lb)';
+}
+
+// ===== Daily Total Volume (all exercises) =====
+function renderDailyVolume() {
+  const dailySel = document.getElementById('daily-window');
+  const win = dailySel ? dailySel.value : 'all';
+
+  let logs = state.logs.slice();
+  if (win !== 'all') {
+    const days = Number(win);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    logs = logs.filter(l => new Date(l.date) >= cutoff);
+  }
+
+  const byDate = {};
+  logs.forEach(l => {
+    const key = l.date;
+    const vol = (l.weight || 0) * (l.reps || 0);
+    byDate[key] = (byDate[key] || 0) + vol;
+  });
+  const labels = Object.keys(byDate).sort();
+  const data = labels.map(d => byDate[d]);
+
+  const canvas = document.getElementById('daily-volume-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (dailyChart) dailyChart.destroy();
+  dailyChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Daily Total Volume (lb)', data }] },
+    options: {
+      responsive: true,
+      scales: {
+        x: { ticks: { color: '#c7d2fe' }, grid: { color: '#2c3446' } },
+        y: { ticks: { color: '#c7d2fe' }, grid: { color: '#2c3446' } }
+      },
+      plugins: { legend: { labels: { color: '#e5e7eb' } } }
+    }
+  });
 }
 
 // Export / Import
@@ -350,6 +401,8 @@ function importJSON(evt) {
       renderExerciseList();
       renderToday();
       renderHistory();
+      renderChart();
+      renderDailyVolume();
       alert('Data imported ✔️');
     } catch (e) {
       alert('Import failed: ' + e.message);
